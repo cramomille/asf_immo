@@ -1,5 +1,3 @@
-
-  
 # Ce script est adapaté pour le cours d'initiation à R du M2 Géoprisme
 # (R. Le Goix, Université Paris Cité, Sept. 2024)
 # 
@@ -28,11 +26,11 @@ library(tidyverse)
 # Lecture et assemblage des fichiers DVF
 DVF <- read.csv("data/dvf/full_2024.csv", sep = ",", fileEncoding = "UTF-8")
 
-# Etape1 > Sélection des mutations de type "Ventes" de "Maison" et "Appartement'
+# Etape 1 > Sélection des mutations de type "Ventes" de "Maison" et "Appartement'
 etape1 <- DVF %>% filter(nature_mutation == "Vente")
 etape1bis <- etape1 %>% filter(type_local == "Maison" | type_local == "Appartement")
 
-# Etape2 > Sélection et renommage des variables
+# Etape 2 > Sélection et renommage des variables
 etape2 <- etape1bis %>% select(
   id = id_mutation, 
   disposition = numero_disposition, 
@@ -48,7 +46,7 @@ etape2 <- etape1bis %>% select(
   latitude, 
   longitude)
 
-# Etape3 > Remplacement des cellules vides par des NA et suppression des NA
+# Etape 3 > Remplacement des cellules vides par des NA et suppression des NA
 etape2[etape2 == ""] <- NA
 etape3 <- etape2 %>% na.omit()
 
@@ -56,10 +54,10 @@ etape3 <- etape2 %>% na.omit()
 unique <- etape3 %>% distinct(id, prix, surface)
 nbunique <- unique %>% group_by(id) %>% summarise(nb = n())
 
-# Etape4 > Sélections des mutations simples
+# Etape 4 > Sélections des mutations simples
 etape4 <- nbunique %>% filter(nb == 1)
 
-# Etape5 > Jointure attributaire pour récupérer les informations de la mutation
+# Etape 5 > Jointure attributaire pour récupérer les informations de la mutation
 merge <- merge(etape4,etape3, by = "id")
 etape5 <- merge %>% 
   distinct(id, .keep_all = TRUE) %>% 
@@ -71,7 +69,7 @@ etape5$surface <- as.numeric(etape5$surface)
 etape5$piece <- as.numeric(etape5$piece)
 
 ## Création du prix au m² et filtre des valeurs extrêmes et aberrantes 
-# Etape6 > Création de la variable prix/m²
+# Etape 6 > Création de la variable prix/m²
 etape6 <- etape5 %>% mutate(prixm2 = prix/surface)
 
 maison <- etape6 %>% filter(type == 'Maison')
@@ -98,7 +96,7 @@ etape7 <- etape7 %>% mutate(ANNEE = substr(etape7$date, 1, 4))
 etape7$prix <- round(etape7$prix)
 etape7$prixm2 <- round(etape7$prixm2)
 
-# Etape8 > Structuration du jeu de données final
+# Etape 8 > Structuration du jeu de données final
 DVFOK <- etape7 %>% select(id, date, annee = ANNEE, type, prix, surface, prixm2, codecommune, latitude, longitude)
 
 # Ecrire le jeu de données final en csv
