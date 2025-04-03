@@ -19,14 +19,14 @@ library(mapsf)
 ###############################################################################
 ############################################################### FONDS D'ALIETTE
 
-# Recuperation des fonds de reference
+# Recuperation des fonds de reference -----------------------------------------
 load("C:/Users/Antoine Beroud/Desktop/rexplo/input/mar/donnees/AR01_geog_constante.RData")
 tabl_com <- d.comf.pass
 rm(d.comf.app, d.comf.pass, d.irisf.pass, sf.comf, sf.irisf)
 
 tabl_com <- tabl_com[, c(1,4)]
 
-# Recuperation des communes regroupees
+# Recuperation des communes regroupees ----------------------------------------
 load("C:/Users/Antoine Beroud/Desktop/rexplo/input/mar/donnees/AR02_maille_IRISr.RData")
 iris <- sf.irisr
 rm(d.irisr.app, d.irisr.etapes, d.irisr.pass, sf.irisr)
@@ -57,14 +57,14 @@ rm(iris, list_id)
 
 
 ###############################################################################
-######################################################### INDICE D'ABORDABILITE
+############################################ TRAITEMENT DES FICHIERS DE DONNEES
 
-# Chargement du fichier sur les donnees FILOCOM -------------------------------
+# Chargement du fichier FILOCOM -----------------------------------------------
 mar_revenu <- read.csv("input/decile_revucm_comar.csv")
 mar_revenu <- mar_revenu[, c("comar", "d5_2022")]
 
 
-# Chargement des fichiers dvf -------------------------------------------------
+# Chargement des fichiers DVF -------------------------------------------------
 dvf_2014 <- "https://sharedocs.huma-num.fr/wl/?id=vp4DTsuh5ctsBwGTzCSzgdKvZ3HnreAf&mode=grid&download=1"
 dvf_2015 <- "https://sharedocs.huma-num.fr/wl/?id=QJ3AiWOCYVCkYN6Z0FzqI2yMM7Fu0Jhp&mode=grid&download=1"
 dvf_2016 <- "https://sharedocs.huma-num.fr/wl/?id=OshgupIqPkg70hEMB7DdSpbsFDuTeAMN&mode=grid&download=1"
@@ -84,7 +84,7 @@ dvf <- rbind(a, b)
 
 dvf <- dvf[, -c(1,3,4,10,11)]
 
-# # Explo pour voir les valeurs medianes
+# # Explo pour voir les surfaces medianes des biens pour les loyers
 # m <- dvf[dvf$type == "Maison", ]
 # quantile(m$surface, probs = c(0.3, 0.5, 0.7), na.rm = TRUE)
 # a <- dvf[dvf$type == "Appartement", ]
@@ -148,10 +148,9 @@ loyer <- loyer[!grepl("75056|13055|69123", loyer$Code), ]
 
 loyer <- rbind(arr, loyer)
 
-# Utilisation des Indices de reference des loyers pour estimer les loyers de 2022
+# Utilisation de l'Indice de reference des loyers pour estimer les loyers de 2022
 loyer$loyer_mai <- round(loyer$loyer_mai / 1.0247 / 1.035, 2)
 loyer$loyer_app <- round(loyer$loyer_app / 1.0247 / 1.035, 2)
-
 
 mar <- merge(tabl_com, loyer, by.x = "COM_CODE", by.y = "Code")
 mar <- mar[, -c(1)]
@@ -196,6 +195,9 @@ fondata <- merge_fondata(data = data,
                          id = c("comar", "id_multi"))
 
 
+
+###############################################################################
+############################################# CALCUL DE L'INDICE D'ABORDABILITE
 
 # Nombre d'annee de revenu pour acheter un bien
 fondata$abord_mai <- (fondata$median_prix_maison * 0.9) / fondata$d5_2022 
