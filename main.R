@@ -143,7 +143,8 @@ arr_loyer <- loyer[grepl("75056|13055|69123", loyer$Code), ]
 arr_loyer$id <- substr(arr_loyer$Code, 1, 2)
 
 arr <- merge(arr_com, arr_loyer, by = "id")
-arr <- arr[, c(5:8)]
+arr <- arr[, c(2,6:8)]
+colnames(arr)[1] <- "Code" 
 
 loyer <- loyer[!grepl("75056|13055|69123", loyer$Code), ]
 
@@ -211,7 +212,7 @@ fondata$abord_mai <- (fondata$median_prix_maison * 0.9) / fondata$d5_2022
 fondata$abord_app <- (fondata$median_prix_appart * 0.9) / fondata$d5_2022
 
 # Abordabilite du loyer (pourcentage du salaire)
-fondata$abord_mai_loc <- (fondata$loyer_app * 55) / (fondata$d5_2022 / 12) * 100
+fondata$abord_mai_loc <- (fondata$loyer_mai * 90) / (fondata$d5_2022 / 12) * 100
 fondata$abord_app_loc <- (fondata$loyer_app * 55) / (fondata$d5_2022 / 12) * 100
 
 # Indice final
@@ -221,18 +222,18 @@ q_a <- quantile(fondata$abord_app, probs = c(0.05, 0.25, 0.5, 0.75, 0.95, 1), na
 
 # Création de la colonne 'typo'
 fondata$typo_m <- with(fondata, 
-                       ifelse(abord_mai < q_m[1] & abord_mai_loc < 30, 1,
-                       ifelse(abord_mai < q_m[1] & abord_mai_loc > 30, 2,
-                       ifelse(abord_mai >= q_m[1] & abord_mai < q_m[2] & abord_mai_loc < 30, 3,
-                       ifelse(abord_mai >= q_m[1] & abord_mai < q_m[2] & abord_mai_loc > 30, 4,
-                       ifelse(abord_mai >= q_m[2] & abord_mai < q_m[3] & abord_mai_loc < 30, 5,
-                       ifelse(abord_mai >= q_m[2] & abord_mai < q_m[3] & abord_mai_loc > 30, 6,
-                       ifelse(abord_mai >= q_m[3] & abord_mai < q_m[4] & abord_mai_loc < 30, 7,
-                       ifelse(abord_mai >= q_m[3] & abord_mai < q_m[4] & abord_mai_loc > 30, 8,
-                       ifelse(abord_mai >= q_m[4] & abord_mai < q_m[5] & abord_mai_loc < 30, 9,
-                       ifelse(abord_mai >= q_m[4] & abord_mai < q_m[5] & abord_mai_loc > 30, 10,
-                       ifelse(abord_mai >= q_m[5] & abord_mai_loc < 30, 11,
-                       ifelse(abord_mai >= q_m[5] & abord_mai_loc > 30, 12, 
+                       ifelse(abord_mai < q_m[1] & abord_app_loc < 30, 1,
+                       ifelse(abord_mai < q_m[1] & abord_app_loc > 30, 2,
+                       ifelse(abord_mai >= q_m[1] & abord_mai < q_m[2] & abord_app_loc < 30, 3,
+                       ifelse(abord_mai >= q_m[1] & abord_mai < q_m[2] & abord_app_loc > 30, 4,
+                       ifelse(abord_mai >= q_m[2] & abord_mai < q_m[3] & abord_app_loc < 30, 5,
+                       ifelse(abord_mai >= q_m[2] & abord_mai < q_m[3] & abord_app_loc > 30, 6,
+                       ifelse(abord_mai >= q_m[3] & abord_mai < q_m[4] & abord_app_loc < 30, 7,
+                       ifelse(abord_mai >= q_m[3] & abord_mai < q_m[4] & abord_app_loc > 30, 8,
+                       ifelse(abord_mai >= q_m[4] & abord_mai < q_m[5] & abord_app_loc < 30, 9,
+                       ifelse(abord_mai >= q_m[4] & abord_mai < q_m[5] & abord_app_loc > 30, 10,
+                       ifelse(abord_mai >= q_m[5] & abord_app_loc < 30, 11,
+                       ifelse(abord_mai >= q_m[5] & abord_app_loc > 30, 12, 
                        NA)))))))))))))
 
 fondata$typo_a <- with(fondata, 
@@ -270,9 +271,3 @@ mf_map(fondata,
        type = "typo",
        pal = palette,
        border = NA)
-
-
-
-
-
-
