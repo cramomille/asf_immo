@@ -6,12 +6,12 @@
 #                                                                  aliette roux
 
 library(sf)
+library(asf)
 library(mapsf)
 
 # library(readxl)
 # library(data.table)
 
-library(asf)
 # library(dplyr)
 # library(ggplot2)
 
@@ -61,7 +61,7 @@ rm(iris, list_id)
 
 # Chargement du fichier sur les donnees FILOCOM -------------------------------
 mar_revenu <- read.csv("input/decile_revucm_comar.csv")
-mar_revenu <- mar_revenu[, c(2,127)]
+mar_revenu <- mar_revenu[, c("comar", "d5_2022")]
 
 
 # Chargement des fichiers dvf -------------------------------------------------
@@ -77,15 +77,18 @@ dvf_2022 <- "https://sharedocs.huma-num.fr/wl/?id=5sYwnTlHiFAiTtgD9ZqUeNuEAUTo5T
 dvf_2023 <- "https://sharedocs.huma-num.fr/wl/?id=4l09Pfh8OGPICchf9PQEw4X4kdvjOR5P&mode=grid&download=1"
 dvf_2024 <- "https://sharedocs.huma-num.fr/wl/?id=oSMYbBxT6OWaePSLPydnXOJYoQE3tOID&mode=grid&download=1"
 
-a <- read.csv(dvf_2023)
-b <- read.csv(dvf_2024)
+a <- read.csv(dvf_2022)
+b <- read.csv(dvf_2023)
 
 dvf <- rbind(a, b)
 
 dvf <- dvf[, -c(1,3,4,10,11)]
 
-dvf <- dvf[dvf$type == "Appartement", ]
-mean(dvf$surface)
+# # Explo pour voir les valeurs medianes
+# m <- dvf[dvf$type == "Maison", ]
+# quantile(m$surface, probs = c(0.3, 0.5, 0.7), na.rm = TRUE)
+# a <- dvf[dvf$type == "Appartement", ]
+# quantile(a$surface, probs = c(0.3, 0.5, 0.7), na.rm = TRUE)
 
 mar <- merge(tabl_com, dvf, by.x = "COM_CODE", by.y = "codecommune")
 mar <- mar[, -c(1)]
@@ -145,6 +148,10 @@ loyer <- loyer[!grepl("75056|13055|69123", loyer$Code), ]
 
 loyer <- rbind(arr, loyer)
 
+# Utilisation des Indices de reference des loyers pour estimer les loyers de 2022
+loyer$loyer_mai <- round(loyer$loyer_mai / 1.0247 / 1.035, 2)
+loyer$loyer_app <- round(loyer$loyer_app / 1.0247 / 1.035, 2)
+
 
 mar <- merge(tabl_com, loyer, by.x = "COM_CODE", by.y = "Code")
 mar <- mar[, -c(1)]
@@ -195,8 +202,8 @@ fondata$abord_mai <- (fondata$median_prix_maison * 0.9) / fondata$d5_2022
 fondata$abord_app <- (fondata$median_prix_appart * 0.9) / fondata$d5_2022
 
 # Abordabilite du loyer (pourcentage du salaire)
-fondata$abord_mai_loc <- (fondata$loyer_mai * 98) / (fondata$d5_2022 / 12) * 100
-fondata$abord_app_loc <- (fondata$loyer_app * 49) / (fondata$d5_2022 / 12) * 100
+fondata$abord_mai_loc <- (fondata$loyer_app * 55) / (fondata$d5_2022 / 12) * 100
+fondata$abord_app_loc <- (fondata$loyer_app * 55) / (fondata$d5_2022 / 12) * 100
 
 # Indice final
 # Calcul des quartiles
@@ -235,19 +242,12 @@ fondata$typo_a <- with(fondata,
                        NA)))))))))))))
 
 palette <- c(
-  "1" = "#00a183",
-  "2" = "#6561a9",
-  "3" = "#8ccaae",
-  "4" = "#9b99cc",
-  "5" = "#cce5d8",
-  "6" = "#d3d5ed",
-  
-  "7" = "#ffe8b6",
-  "8" = "#f9c4a7",
-  "9" = "#fdc75f",
-  "10" = "#f08159",
-  "11" = "#f59c00",
-  "12" = "#dc0d15"
+  "#00a183","#6561a9",
+  "#8ccaae","#9b99cc",
+  "#cce5d8","#d3d5ed",
+  "#ffe8b6","#f9c4a7",
+  "#fdc75f","#f08159",
+  "#f59c00","#dc0d15"
 )
 
 mf_map(fondata,
@@ -256,22 +256,9 @@ mf_map(fondata,
        pal = palette,
        border = NA)
 
-
-
-palette <- c(
-  "2" = "#6561a9",
-  "3" = "#8ccaae",
-  "4" = "#9b99cc",
-  "6" = "#d3d5ed",
-  
-  "7" = "#ffe8b6",
-  "8" = "#f9c4a7",
-  "10" = "#f08159",
-  "12" = "#dc0d15"
-)
-
 mf_map(fondata,
        var = "typo_m", 
        type = "typo",
        pal = palette,
        border = NA)
+
