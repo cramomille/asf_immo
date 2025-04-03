@@ -19,41 +19,45 @@ library(mapsf)
 ###############################################################################
 ############################################################### FONDS D'ALIETTE
 
-# Recuperation des fonds de reference -----------------------------------------
+# Recuperation des fonds de reference
 load("C:/Users/Antoine Beroud/Desktop/rexplo/input/mar/donnees/AR01_geog_constante.RData")
 tabl_com <- d.comf.pass
-rm(d.comf.app, d.comf.pass, d.irisf.pass, sf.comf, sf.irisf)
-
 tabl_com <- tabl_com[, c(1,4)]
 
-# Recuperation des communes regroupees ----------------------------------------
+# Recuperation des communes regroupees
 load("C:/Users/Antoine Beroud/Desktop/rexplo/input/mar/donnees/AR02_maille_IRISr.RData")
 iris <- sf.irisr
-rm(d.irisr.app, d.irisr.etapes, d.irisr.pass, sf.irisr)
 
 # Agregation en communes
 com <- aggregate(iris, by = list(iris$COMF_CODE_MULTI), FUN = function(x) x[1])
 com <- com[, c(1,7,10)]
-
-colnames(com)[1] <- "id_multi"
-
 com <- st_as_sf(com)
 com <- st_transform(com, 2154)
 
-summary(nchar(com$id_multi))
+colnames(com)[1] <- "comar"
+
+summary(nchar(com$comar))
 
 # Decomposition des identifiants agreges en une liste
-list_id <- strsplit(com$id_multi, " \\| ")
+list_id <- strsplit(com$comar, " \\| ")
 
-# Creation d'une table d'association entre chaque commune et son id_aggreg
+# Creation d'une table d'association entre chaque commune et son regroupement de communes
 tabl_id <- data.frame(
-  id_comf = unlist(list_id),
-  id_multi = rep(com$id_multi, sapply(list_id, length))
+  COMF_CODE = unlist(list_id),
+  comar = rep(com$comar, sapply(list_id, length))
 )
 
-summary(nchar(tabl_id$id_multi))
-rm(iris, list_id)
+summary(nchar(tabl_id$comar))
 
+# Creation d'une table de passage globale
+tabl <- merge(tabl_com, tabl_id, by = "COMF_CODE", all = TRUE)
+tabl <- tabl[, c(2,1,3)]
+# tabl <- tabl[!grepl("75056|13055|69123", tabl$COMF_CODE), ]
+
+# Suppression des donnees inutilisees
+rm(d.comf.app, d.comf.pass, d.irisf.pass, sf.comf, sf.irisf)
+rm(d.irisr.app, d.irisr.etapes, d.irisr.pass, sf.irisr)
+rm(iris, com, list_id, tabl_com, tabl_id)
 
 
 ###############################################################################
@@ -85,15 +89,13 @@ dvf <- rbind(a, b)
 dvf <- dvf[, -c(1,3,4,10,11)]
 
 # # Explo pour voir les surfaces medianes des biens pour les loyers
-# m <- dvf[dvf$type == "Maison", ]
-# quantile(m$surface, probs = c(0.3, 0.5, 0.7), na.rm = TRUE)
-# a <- dvf[dvf$type == "Appartement", ]
-# quantile(a$surface, probs = c(0.3, 0.5, 0.7), na.rm = TRUE)
+# ma <- dvf[dvf$type == "Maison", ]
+# quantile(ma$surface, probs = c(0.25, 0.5, 0.75), na.rm = TRUE)
+# ap <- dvf[dvf$type == "Appartement", ]
+# quantile(ap$surface, probs = c(0.25, 0.5, 0.75), na.rm = TRUE)
 
-mar <- merge(tabl_com, dvf, by.x = "COM_CODE", by.y = "codecommune")
-mar <- mar[, -c(1)]
-mar <- merge(tabl_id, mar, by.x = "id_comf", by.y = "COMF_CODE")
-mar <- mar[, -c(1)]
+mar <- merge(tabl, dvf, by.x = "COM_CODE", by.y = "codecommune")
+mar <- mar[, -c(1,2)]
 
 # Fonction pour traiter un type de bien (Maison/Appartement)
 filter_dvf <- function(dvf, type_bien) {
@@ -101,12 +103,12 @@ filter_dvf <- function(dvf, type_bien) {
   # Filtrer les données pour le type de bien
   dvf_filtered <- dvf[dvf$type == type_bien, ]
   
-  # Calcul des agregations par commune
-  com_prix <- tapply(dvf_filtered$prix, dvf_filtered$id_multi, median, na.rm = TRUE)
-  com_nomb <- tapply(dvf_filtered$prix, dvf_filtered$id_multi, length)
+  # Calcul des agregations par regroupement de communes
+  com_prix <- tapply(dvf_filtered$prix, dvf_filtered$comar, median, na.rm = TRUE)
+  com_nomb <- tapply(dvf_filtered$prix, dvf_filtered$comar, length)
   
   # Convertir en data.frame
-  result <- data.frame(commune = names(com_prix),
+  result <- data.frame(comar = names(com_prix),
                        prix = as.vector(com_prix),
                        nb = as.vector(com_nomb))
   
@@ -120,7 +122,7 @@ filter_dvf <- function(dvf, type_bien) {
 maison <- filter_dvf(mar, "Maison")
 appart <- filter_dvf(mar, "Appartement")
 
-mar_dvf <- merge(maison, appart, by = "commune", all = TRUE)
+mar_dvf <- merge(maison, appart, by = "comar", all = TRUE)
 
 rm(a, b, dvf, mar, maison, appart)
 
@@ -134,15 +136,14 @@ loyer[, 4] <- as.numeric(loyer[, 4])
 colnames(loyer)[3:4] <- c("loyer_mai", "loyer_app")
 
 # Comme il manque les arrondissements on dedouble les communes concernees
-arr_com <- tabl_com[grepl("^751|^132|^6938", tabl_com$COM_CODE), ]
+arr_com <- tabl[grepl("^751|^132|^6938", tabl$COM_CODE), ]
 arr_com$id <- substr(arr_com$COM_CODE, 1, 2)
 
 arr_loyer <- loyer[grepl("75056|13055|69123", loyer$Code), ]
 arr_loyer$id <- substr(arr_loyer$Code, 1, 2)
 
 arr <- merge(arr_com, arr_loyer, by = "id")
-arr <- arr[, c(2,5:7)]
-colnames(arr)[1] <- "Code"
+arr <- arr[, c(5:8)]
 
 loyer <- loyer[!grepl("75056|13055|69123", loyer$Code), ]
 
@@ -152,24 +153,31 @@ loyer <- rbind(arr, loyer)
 loyer$loyer_mai <- round(loyer$loyer_mai / 1.0247 / 1.035, 2)
 loyer$loyer_app <- round(loyer$loyer_app / 1.0247 / 1.035, 2)
 
-mar <- merge(tabl_com, loyer, by.x = "COM_CODE", by.y = "Code")
-mar <- mar[, -c(1)]
-mar <- merge(tabl_id, mar, by.x = "id_comf", by.y = "COMF_CODE")
-mar <- mar[, -c(1)]
+# Chargement du nombre de menages par commune pour ponderer les loyers entre communes lors du regroupement
+pop <- read.csv("C:/Users/Antoine Beroud/Desktop/casd/export/TREVPOP_export_02/donnees/fra/filocom_2022_decile.csv")
+pop <- pop[, c(2,13)]
 
-mar_loyer <- aggregate(cbind(loyer_mai, loyer_app) ~ id_multi, data = mar, FUN = mean)
-mar_loyer[, -1] <- round(mar_loyer[, -1], 2)
+loyer <- merge(loyer, pop, by.x = "Code", by.y = "COM", all.x = TRUE)
+loyer$TOT[is.na(loyer$TOT)] <- 5
+loyer$TOTB <- loyer$TOT
 
-rm(loyer, mar)
+# Agregation des communes en calculant une moyenne ponderee des loyers
+mar_loyer <- aggreg_data(tabl = tabl,
+                         data = loyer,
+                         vars = c(3:6),
+                         funs = c("prod1", "prod2", "coef1", "coef2"),
+                         id = c("COM_CODE", "Code"),
+                         maille = "comar")
 
+rm(arr, arr_com, arr_loyer, pop, loyer)
 
 
 ###############################################################################
 ################################################################### PACKAGE ASF
 
 # Traitement sur les donnees --------------------------------------------------
-data <- merge(mar_revenu, mar_loyer, by.x = "comar", by.y = "id_multi", all = TRUE)
-data <- merge(data, mar_dvf, by.x = "comar", by.y = "commune", all = TRUE)
+data <- merge(mar_revenu, mar_loyer, by = "comar", all = TRUE)
+data <- merge(data, mar_dvf, by = "comar", all = TRUE)
 
 # Creation du fond et des zooms -----------------------------------------------
 comar <- "https://sharedocs.huma-num.fr/wl/?id=ompFGNW6dYfyBv2pk2HxLA0x7yA3fc8C&mode=grid&download=1"
@@ -193,7 +201,6 @@ fondata <- merge_fondata(data = data,
                          fond = fond,
                          zoom = zooms,
                          id = c("comar", "id_multi"))
-
 
 
 ###############################################################################
@@ -263,4 +270,9 @@ mf_map(fondata,
        type = "typo",
        pal = palette,
        border = NA)
+
+
+
+
+
 
