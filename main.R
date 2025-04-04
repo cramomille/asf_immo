@@ -9,6 +9,9 @@ library(sf)
 library(asf)
 library(mapsf)
 
+library(ggplot2)
+library(reshape2)
+
 ###############################################################################
 ############################################################### FONDS D'ALIETTE
 
@@ -270,12 +273,6 @@ mf_map(fondata,
 ###############################################################################
 ############################################################# GRAPHIQUE MATRICE
 
-# library(readxl)
-# library(data.table)
-
-# library(dplyr)
-# library(ggplot2)
-
 # Definition des fichiers et des valeurs de division
 data <- list(dvf_2014 = "https://sharedocs.huma-num.fr/wl/?id=vp4DTsuh5ctsBwGTzCSzgdKvZ3HnreAf&mode=grid&download=1",
              dvf_2015 = "https://sharedocs.huma-num.fr/wl/?id=QJ3AiWOCYVCkYN6Z0FzqI2yMM7Fu0Jhp&mode=grid&download=1",
@@ -331,49 +328,55 @@ rd9 <- c(36068, #2013
 
 
 # Initialisation d'une liste pour stocker les resultats
-result <- list()
+maison <- list()
+appart <- list()
 
 # Boucle sur les fichiers et les valeurs de division
 for (i in seq_along(data)) {
+
   # Chargement du fichier
-  dvf <- read.csv(data[[1]])
+  dvf <- read.csv(data[[i]])
   dvf <- dvf[, c(9,5,6)]
   
+  mar <- merge(tabl, dvf, by.x = "COM_CODE", by.y = "codecommune")
+  mar <- mar[, -c(1,2)]
+  
   # Filtrage du type de bien (Maison ou Appartement)
-  type <- dvf[dvf$type == "Appartement", ]
+  mai <- mar[mar$type == "Maison", ]
+  app <- mar[mar$type == "Appartement", ]
+
+  # Agregation par groupe de communes
+  mai <- aggregate(prix ~ comar, mai, FUN = median, na.rm = TRUE)
+  app <- aggregate(prix ~ comar, app, FUN = median, na.rm = TRUE)
   
   # Calcul des deciles
-  decile <- quantile(type$prix, probs = seq(0.1, 0.9, 0.1))
+  decile_mai <- quantile(mai$prix, probs = seq(0.1, 0.9, 0.1))
+  decile_app <- quantile(app$prix, probs = seq(0.1, 0.9, 0.1))
   
   # Stockage des resultats
-  result[[i]] <- data.frame(
+  maison[[i]] <- data.frame(
     # decile = decile,
-    abord = round(decile / rd1[i], 1)
+    abord = round(decile_mai / rd9[i], 1)
+  )
+  appart[[i]] <- data.frame(
+    # decile = decile,
+    abord = round(decile_app / rd9[i], 1)
   )
   
   # Renommer les colonnes pour chaque annee
-  colnames(result[[i]]) <- paste0(colnames(result[[i]]), "_", substr(data[[i]], 18, 22))
+  colnames(maison[[i]]) <- paste0(colnames(maison[[i]]), "_", substr(names(data)[i], 5, 8))
+  colnames(appart[[i]]) <- paste0(colnames(appart[[i]]), "_", substr(names(data)[i], 5, 8))
   
   print(".")
 }
 
 # Fusionner tous les tableaux par la colonne des deciles
-tableau_a_d1 <- do.call(cbind, result)
+maison_d9 <- do.call(cbind, maison)
+appart_d9 <- do.call(cbind, appart)
 
-
-
-
-
-
-
-
-
-
-
-library(ggplot2)
-library(reshape2)
-
-tableau <- tableau_a_d1
+# Dessin des graphiques
+tableau <- maison_d5
+tableau <- appart_d5
 
 tableau$decile = c("10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%")
 
@@ -390,14 +393,13 @@ tableau_long$classe <- cut(tableau_long$valeur,
                            right = FALSE
 )
 
-# Couleurs associées aux classes
-couleurs_classe <- c("1" = "#bce4fa",
-                     "2" = "#e3e3e3",
-                     "3" = "#f8c9df",
-                     "4" = "#f088b6",
-                     "5" = "#e8308a")
+palette <- c("1" = "#bce4fa",
+             "2" = "#e3e3e3",
+             "3" = "#f8c9df",
+             "4" = "#f088b6",
+             "5" = "#e8308a")
 
-# Création du heatmap avec ggplot
+# Creation du heatmap avec ggplot
 ggplot(tableau_long, aes(x = annee, y = decile, fill = classe)) +
   geom_tile(color = "white") +  # creation des carres
   scale_fill_manual(values = couleurs_classe) +  # couleurs
@@ -405,3 +407,4 @@ ggplot(tableau_long, aes(x = annee, y = decile, fill = classe)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # rotation des labels
   labs(title = "Évolution des valeurs par décile et année", 
        fill = "Classe de Valeur")
+ 
