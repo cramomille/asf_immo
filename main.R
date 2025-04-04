@@ -247,7 +247,7 @@ fondata$typo_a <- with(fondata,
                        ifelse(abord_app >= q_a[5] & abord_app_loc < 30, 11,
                        ifelse(abord_app >= q_a[5] & abord_app_loc > 30, 12, 
                        NA)))))))))))))
-
+jfjjfjfjjjfjj
 palette <- c(
   "#00a183","#6561a9",
   "#8ccaae","#9b99cc",
