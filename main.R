@@ -336,8 +336,8 @@ result <- list()
 # Boucle sur les fichiers et les valeurs de division
 for (i in seq_along(data)) {
   # Chargement du fichier
-  dvf <- read.csv(data[[i]])
-  dvf <- dvf[, c(2,5,6)]
+  dvf <- read.csv(data[[1]])
+  dvf <- dvf[, c(9,5,6)]
   
   # Filtrage du type de bien (Maison ou Appartement)
   type <- dvf[dvf$type == "Appartement", ]
@@ -353,6 +353,8 @@ for (i in seq_along(data)) {
   
   # Renommer les colonnes pour chaque annee
   colnames(result[[i]]) <- paste0(colnames(result[[i]]), "_", substr(data[[i]], 18, 22))
+  
+  print(".")
 }
 
 # Fusionner tous les tableaux par la colonne des deciles
