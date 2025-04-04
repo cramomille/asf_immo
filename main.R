@@ -209,8 +209,8 @@ fondata$abord_mai <- (fondata$median_prix_maison * 0.9) / fondata$d5_2022
 fondata$abord_app <- (fondata$median_prix_appart * 0.9) / fondata$d5_2022
 
 # Abordabilite du loyer (pourcentage du salaire)
-fondata$abord_mai_loc <- (fondata$loyer_mai * 90) / (fondata$d5_2022 / 12) * 100
-fondata$abord_app_loc <- (fondata$loyer_app * 55) / (fondata$d5_2022 / 12) * 100
+fondata$abord_mai_loc <- (fondata$loyer_mai * 98) / (fondata$d5_2022 / 12) * 100
+fondata$abord_app_loc <- (fondata$loyer_app * 49) / (fondata$d5_2022 / 12) * 100
 
 # Indice final
 # Calcul des quartiles
@@ -375,7 +375,7 @@ maison_d9 <- do.call(cbind, maison)
 appart_d9 <- do.call(cbind, appart)
 
 # Dessin des graphiques
-tableau <- maison_d5
+tableau <- maison_d9
 tableau <- appart_d5
 
 tableau$decile = c("10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%")
@@ -388,7 +388,7 @@ colnames(tableau_long) <- c("decile", "annee", "valeur")
 
 # Création d'une colonne categorielle pour les classes
 tableau_long$classe <- cut(tableau_long$valeur,
-                           breaks = c(0, 5, 10, 15, 30, Inf),
+                           breaks = c(0, 5, 10, 15, 20, Inf),
                            labels = c("1", "2", "3", "4", "5"),
                            right = FALSE
 )
