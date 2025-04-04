@@ -9,13 +9,6 @@ library(sf)
 library(asf)
 library(mapsf)
 
-# library(readxl)
-# library(data.table)
-
-# library(dplyr)
-# library(ggplot2)
-
-
 ###############################################################################
 ############################################################### FONDS D'ALIETTE
 
@@ -69,20 +62,21 @@ mar_revenu <- mar_revenu[, c("comar", "d5_2022")]
 
 
 # Chargement des fichiers DVF -------------------------------------------------
-dvf_2014 <- "https://sharedocs.huma-num.fr/wl/?id=vp4DTsuh5ctsBwGTzCSzgdKvZ3HnreAf&mode=grid&download=1"
-dvf_2015 <- "https://sharedocs.huma-num.fr/wl/?id=QJ3AiWOCYVCkYN6Z0FzqI2yMM7Fu0Jhp&mode=grid&download=1"
-dvf_2016 <- "https://sharedocs.huma-num.fr/wl/?id=OshgupIqPkg70hEMB7DdSpbsFDuTeAMN&mode=grid&download=1"
-dvf_2017 <- "https://sharedocs.huma-num.fr/wl/?id=E0Xc2Ahyb0UUGoHFL6JR704dpQnUE7wK&mode=grid&download=1"
-dvf_2018 <- "https://sharedocs.huma-num.fr/wl/?id=I22yu03q8W53XEFSb0voebmdi0ORUzUl&mode=grid&download=1"
-dvf_2019 <- "https://sharedocs.huma-num.fr/wl/?id=6muOpXEStHm1Y56YUNv93n14zx2QSQ9i&mode=grid&download=1"
-dvf_2020 <- "https://sharedocs.huma-num.fr/wl/?id=iq9S63LevHYxoDMCkL01bNQBeE4YlWYx&mode=grid&download=1"
-dvf_2021 <- "https://sharedocs.huma-num.fr/wl/?id=XYI1SDuWfYRXfCtuz0jvcz7C4LuLi5Qg&mode=grid&download=1"
-dvf_2022 <- "https://sharedocs.huma-num.fr/wl/?id=5sYwnTlHiFAiTtgD9ZqUeNuEAUTo5T7F&mode=grid&download=1"
-dvf_2023 <- "https://sharedocs.huma-num.fr/wl/?id=4l09Pfh8OGPICchf9PQEw4X4kdvjOR5P&mode=grid&download=1"
-dvf_2024 <- "https://sharedocs.huma-num.fr/wl/?id=oSMYbBxT6OWaePSLPydnXOJYoQE3tOID&mode=grid&download=1"
+dvf <- list(dvf_2014 = "https://sharedocs.huma-num.fr/wl/?id=vp4DTsuh5ctsBwGTzCSzgdKvZ3HnreAf&mode=grid&download=1",
+            dvf_2015 = "https://sharedocs.huma-num.fr/wl/?id=QJ3AiWOCYVCkYN6Z0FzqI2yMM7Fu0Jhp&mode=grid&download=1",
+            dvf_2016 = "https://sharedocs.huma-num.fr/wl/?id=OshgupIqPkg70hEMB7DdSpbsFDuTeAMN&mode=grid&download=1",
+            dvf_2017 = "https://sharedocs.huma-num.fr/wl/?id=E0Xc2Ahyb0UUGoHFL6JR704dpQnUE7wK&mode=grid&download=1",
+            dvf_2018 = "https://sharedocs.huma-num.fr/wl/?id=I22yu03q8W53XEFSb0voebmdi0ORUzUl&mode=grid&download=1",
+            dvf_2019 = "https://sharedocs.huma-num.fr/wl/?id=6muOpXEStHm1Y56YUNv93n14zx2QSQ9i&mode=grid&download=1",
+            dvf_2020 = "https://sharedocs.huma-num.fr/wl/?id=iq9S63LevHYxoDMCkL01bNQBeE4YlWYx&mode=grid&download=1",
+            dvf_2021 = "https://sharedocs.huma-num.fr/wl/?id=XYI1SDuWfYRXfCtuz0jvcz7C4LuLi5Qg&mode=grid&download=1",
+            dvf_2022 = "https://sharedocs.huma-num.fr/wl/?id=5sYwnTlHiFAiTtgD9ZqUeNuEAUTo5T7F&mode=grid&download=1",
+            dvf_2023 = "https://sharedocs.huma-num.fr/wl/?id=4l09Pfh8OGPICchf9PQEw4X4kdvjOR5P&mode=grid&download=1",
+            dvf_2024 = "https://sharedocs.huma-num.fr/wl/?id=oSMYbBxT6OWaePSLPydnXOJYoQE3tOID&mode=grid&download=1"
+)
 
-a <- read.csv(dvf_2022)
-b <- read.csv(dvf_2023)
+a <- read.csv(dvf[[9]])
+b <- read.csv(dvf[[10]])
 
 dvf <- rbind(a, b)
 
@@ -271,3 +265,141 @@ mf_map(fondata,
        type = "typo",
        pal = palette,
        border = NA)
+
+
+###############################################################################
+############################################################# GRAPHIQUE MATRICE
+
+# library(readxl)
+# library(data.table)
+
+# library(dplyr)
+# library(ggplot2)
+
+# Definition des fichiers et des valeurs de division
+data <- list(dvf_2014 = "https://sharedocs.huma-num.fr/wl/?id=vp4DTsuh5ctsBwGTzCSzgdKvZ3HnreAf&mode=grid&download=1",
+             dvf_2015 = "https://sharedocs.huma-num.fr/wl/?id=QJ3AiWOCYVCkYN6Z0FzqI2yMM7Fu0Jhp&mode=grid&download=1",
+             dvf_2016 = "https://sharedocs.huma-num.fr/wl/?id=OshgupIqPkg70hEMB7DdSpbsFDuTeAMN&mode=grid&download=1",
+             dvf_2017 = "https://sharedocs.huma-num.fr/wl/?id=E0Xc2Ahyb0UUGoHFL6JR704dpQnUE7wK&mode=grid&download=1",
+             dvf_2018 = "https://sharedocs.huma-num.fr/wl/?id=I22yu03q8W53XEFSb0voebmdi0ORUzUl&mode=grid&download=1",
+             dvf_2019 = "https://sharedocs.huma-num.fr/wl/?id=6muOpXEStHm1Y56YUNv93n14zx2QSQ9i&mode=grid&download=1",
+             dvf_2020 = "https://sharedocs.huma-num.fr/wl/?id=iq9S63LevHYxoDMCkL01bNQBeE4YlWYx&mode=grid&download=1",
+             dvf_2021 = "https://sharedocs.huma-num.fr/wl/?id=XYI1SDuWfYRXfCtuz0jvcz7C4LuLi5Qg&mode=grid&download=1",
+             dvf_2022 = "https://sharedocs.huma-num.fr/wl/?id=5sYwnTlHiFAiTtgD9ZqUeNuEAUTo5T7F&mode=grid&download=1",
+             dvf_2023 = "https://sharedocs.huma-num.fr/wl/?id=4l09Pfh8OGPICchf9PQEw4X4kdvjOR5P&mode=grid&download=1",
+             dvf_2024 = "https://sharedocs.huma-num.fr/wl/?id=oSMYbBxT6OWaePSLPydnXOJYoQE3tOID&mode=grid&download=1"
+)
+
+rd1 <- c(5720, #2013
+         5560, #2014
+         5401, #2015
+         5416, #2016
+         5430, #2017
+         5518, #2018
+         5605, #2019
+         6285, #2020
+         6966, #2021
+         7285, #2022
+         7604  #2023
+)
+
+rd5 <- c(16979, #2013
+         17214, #2014
+         17448, #2015
+         17609, #2016
+         17770, #2017
+         18070, #2018
+         18370, #2019
+         18811, #2020
+         19252, #2021
+         19893, #2022
+         20534  #2023
+)
+
+rd9 <- c(36068, #2013
+         36506, #2014
+         36943, #2015
+         37286, #2016
+         37628, #2017
+         38323, #2018
+         39018, #2019
+         39787, #2020
+         40555, #2021
+         42029, #2022
+         43503  #2023
+)
+
+
+# Initialisation d'une liste pour stocker les resultats
+result <- list()
+
+# Boucle sur les fichiers et les valeurs de division
+for (i in seq_along(data)) {
+  # Chargement du fichier
+  dvf <- read.csv(data[[i]])
+  dvf <- dvf[, c(2,5,6)]
+  
+  # Filtrage du type de bien (Maison ou Appartement)
+  type <- dvf[dvf$type == "Appartement", ]
+  
+  # Calcul des deciles
+  decile <- quantile(type$prix, probs = seq(0.1, 0.9, 0.1))
+  
+  # Stockage des resultats
+  result[[i]] <- data.frame(
+    # decile = decile,
+    abord = round(decile / rd1[i], 1)
+  )
+  
+  # Renommer les colonnes pour chaque annee
+  colnames(result[[i]]) <- paste0(colnames(result[[i]]), "_", substr(data[[i]], 18, 22))
+}
+
+# Fusionner tous les tableaux par la colonne des deciles
+tableau_a_d1 <- do.call(cbind, result)
+
+
+
+
+
+
+
+
+
+
+
+library(ggplot2)
+library(reshape2)
+
+tableau <- tableau_a_d1
+
+tableau$decile = c("10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%")
+
+# Transformation des donnees en format long
+tableau_long <- melt(tableau, id.vars = "decile")
+
+# Renommer les colonnes pour ggplot
+colnames(tableau_long) <- c("decile", "annee", "valeur")
+
+# Création d'une colonne categorielle pour les classes
+tableau_long$classe <- cut(tableau_long$valeur,
+                           breaks = c(0, 5, 10, 15, 30, Inf),
+                           labels = c("1", "2", "3", "4", "5"),
+                           right = FALSE
+)
+
+# Couleurs associées aux classes
+couleurs_classe <- c("1" = "#bce4fa",
+                     "2" = "#e3e3e3",
+                     "3" = "#f8c9df",
+                     "4" = "#f088b6",
+                     "5" = "#e8308a")
+
+# Création du heatmap avec ggplot
+ggplot(tableau_long, aes(x = annee, y = decile, fill = classe)) +
+  geom_tile(color = "white") +  # creation des carres
+  scale_fill_manual(values = couleurs_classe) +  # couleurs
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # rotation des labels
+  labs(title = "Évolution des valeurs par décile et année", 
+       fill = "Classe de Valeur")
