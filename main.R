@@ -350,17 +350,17 @@ for (i in seq_along(data)) {
   app <- aggregate(prix ~ comar, app, FUN = median, na.rm = TRUE)
   
   # Calcul des deciles
-  decile_mai <- quantile(mai$prix, probs = seq(0.1, 0.9, 0.1))
-  decile_app <- quantile(app$prix, probs = seq(0.1, 0.9, 0.1))
+  decile_mai <- quantile(mai$prix, probs = seq(0.05, 0.95, 0.05))
+  decile_app <- quantile(app$prix, probs = seq(0.05, 0.95, 0.05))
   
   # Stockage des resultats
   maison[[i]] <- data.frame(
     # decile = decile,
-    abord = round(decile_mai / rd9[i], 1)
+    abord = round(decile_mai / rd5[i], 1)
   )
   appart[[i]] <- data.frame(
     # decile = decile,
-    abord = round(decile_app / rd9[i], 1)
+    abord = round(decile_app / rd5[i], 1)
   )
   
   # Renommer les colonnes pour chaque annee
@@ -371,14 +371,15 @@ for (i in seq_along(data)) {
 }
 
 # Fusionner tous les tableaux par la colonne des deciles
-maison_d9 <- do.call(cbind, maison)
-appart_d9 <- do.call(cbind, appart)
+maison_d5 <- do.call(cbind, maison)
+appart_d5 <- do.call(cbind, appart)
 
 # Dessin des graphiques
-tableau <- maison_d9
+tableau <- maison_d5
 tableau <- appart_d5
 
-tableau$decile = c("10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%")
+tableau$decile = c("05%", "10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%", "50%", 
+                   "55%", "60%", "65%", "70%", "75%", "80%", "85%", "90%", "95%")
 
 # Transformation des donnees en format long
 tableau_long <- melt(tableau, id.vars = "decile")
@@ -388,7 +389,7 @@ colnames(tableau_long) <- c("decile", "annee", "valeur")
 
 # Création d'une colonne categorielle pour les classes
 tableau_long$classe <- cut(tableau_long$valeur,
-                           breaks = c(0, 5, 10, 15, 20, Inf),
+                           breaks = c(0, 5, 10, 15, 30, Inf),
                            labels = c("1", "2", "3", "4", "5"),
                            right = FALSE
 )
@@ -402,9 +403,9 @@ palette <- c("1" = "#bce4fa",
 # Creation du heatmap avec ggplot
 ggplot(tableau_long, aes(x = annee, y = decile, fill = classe)) +
   geom_tile(color = "white") +  # creation des carres
-  scale_fill_manual(values = couleurs_classe) +  # couleurs
+  scale_fill_manual(values = palette) +  # couleurs
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # rotation des labels
   labs(title = "Évolution des valeurs par décile et année", 
        fill = "Classe de Valeur")
- 
+  
