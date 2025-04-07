@@ -335,7 +335,7 @@ appart <- list()
 for (i in seq_along(data)) {
 
   # Chargement du fichier
-  dvf <- read.csv(data[[i]])
+  dvf <- read.csv(data[[1]])
   dvf <- dvf[, c(9,5,6)]
   
   mar <- merge(tabl, dvf, by.x = "COM_CODE", by.y = "codecommune")
@@ -350,8 +350,8 @@ for (i in seq_along(data)) {
   app <- aggregate(prix ~ comar, app, FUN = median, na.rm = TRUE)
   
   # Calcul des deciles
-  decile_mai <- quantile(mai$prix, probs = seq(0.05, 0.95, 0.05))
-  decile_app <- quantile(app$prix, probs = seq(0.05, 0.95, 0.05))
+  decile_mai <- quantile(mai$prix, probs = seq(0.1, 0.9, 0.1))
+  decile_app <- quantile(app$prix, probs = seq(0.1, 0.9, 0.1))
   
   # Stockage des resultats
   maison[[i]] <- data.frame(
@@ -378,8 +378,7 @@ appart_d5 <- do.call(cbind, appart)
 tableau <- maison_d5
 tableau <- appart_d5
 
-tableau$decile = c("05%", "10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%", "50%", 
-                   "55%", "60%", "65%", "70%", "75%", "80%", "85%", "90%", "95%")
+tableau$decile = c("10%","20%","30%","40%","50%","60%","70%","80%","90%")
 
 # Transformation des donnees en format long
 tableau_long <- melt(tableau, id.vars = "decile")
