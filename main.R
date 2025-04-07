@@ -335,7 +335,7 @@ appart <- list()
 for (i in seq_along(data)) {
 
   # Chargement du fichier
-  dvf <- read.csv(data[[1]])
+  dvf <- read.csv(data[[i]])
   dvf <- dvf[, c(9,5,6)]
   
   mar <- merge(tabl, dvf, by.x = "COM_CODE", by.y = "codecommune")
