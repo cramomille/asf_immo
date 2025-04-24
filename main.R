@@ -9,51 +9,43 @@ library(sf)
 library(asf)
 library(mapsf)
 
-library(ggplot2)
-library(reshape2)
+# library(ggplot2)
+# library(reshape2)
 
 ###############################################################################
 ############################################################### FONDS D'ALIETTE
 
+mar <- asf_mar()
+
 # Recuperation des fonds de reference
-load("C:/Users/Antoine Beroud/Desktop/rexplo/input/mar/donnees/AR01_geog_constante.RData")
-tabl_com <- d.comf.pass
-tabl_com <- tabl_com[, c(1,4)]
+tabl_com <- mar$ar01$d.comf.pass
+tabl_com <- tabl_com[, c(2, 5)]
 
 # Recuperation des communes regroupees
-load("C:/Users/Antoine Beroud/Desktop/rexplo/input/mar/donnees/AR02_maille_IRISr.RData")
-iris <- sf.irisr
+iris <- mar$ar02$sf.irisr.s
 
 # Agregation en communes
 com <- aggregate(iris, by = list(iris$COMF_CODE_MULTI), FUN = function(x) x[1])
-com <- com[, c(1,7,10)]
-com <- st_as_sf(com)
+com <- com[, c(7, 8)]
 com <- st_transform(com, 2154)
 
-colnames(com)[1] <- "comar"
-
-summary(nchar(com$comar))
+summary(nchar(com$COMF_CODE_MULTI))
 
 # Decomposition des identifiants agreges en une liste
-list_id <- strsplit(com$comar, " \\| ")
+list_id <- strsplit(com$COMF_CODE_MULTI, " \\| ")
 
 # Creation d'une table d'association entre chaque commune et son regroupement de communes
 tabl_id <- data.frame(
   COMF_CODE = unlist(list_id),
-  comar = rep(com$comar, sapply(list_id, length))
+  COMF_CODE_MULTI = rep(com$COMF_CODE_MULTI, sapply(list_id, length))
 )
 
-summary(nchar(tabl_id$comar))
+summary(nchar(tabl_id$COMF_CODE_MULTI))
 
 # Creation d'une table de passage globale
 tabl <- merge(tabl_com, tabl_id, by = "COMF_CODE", all = TRUE)
 tabl <- tabl[, c(2,1,3)]
 # tabl <- tabl[!grepl("75056|13055|69123", tabl$COMF_CODE), ]
-
-# Suppression des donnees inutilisees
-rm(d.comf.app, d.comf.pass, d.irisf.pass, sf.comf, sf.irisf)
-rm(d.irisr.app, d.irisr.etapes, d.irisr.pass, sf.irisr)
-rm(iris, com, list_id, tabl_com, tabl_id)
 
 
 ###############################################################################
@@ -65,17 +57,19 @@ mar_revenu <- mar_revenu[, c("comar", "d5_2022")]
 
 
 # Chargement des fichiers DVF -------------------------------------------------
-dvf <- list(dvf_2014 = "https://sharedocs.huma-num.fr/wl/?id=vp4DTsuh5ctsBwGTzCSzgdKvZ3HnreAf&mode=grid&download=1",
-            dvf_2015 = "https://sharedocs.huma-num.fr/wl/?id=QJ3AiWOCYVCkYN6Z0FzqI2yMM7Fu0Jhp&mode=grid&download=1",
-            dvf_2016 = "https://sharedocs.huma-num.fr/wl/?id=OshgupIqPkg70hEMB7DdSpbsFDuTeAMN&mode=grid&download=1",
-            dvf_2017 = "https://sharedocs.huma-num.fr/wl/?id=E0Xc2Ahyb0UUGoHFL6JR704dpQnUE7wK&mode=grid&download=1",
-            dvf_2018 = "https://sharedocs.huma-num.fr/wl/?id=I22yu03q8W53XEFSb0voebmdi0ORUzUl&mode=grid&download=1",
-            dvf_2019 = "https://sharedocs.huma-num.fr/wl/?id=6muOpXEStHm1Y56YUNv93n14zx2QSQ9i&mode=grid&download=1",
-            dvf_2020 = "https://sharedocs.huma-num.fr/wl/?id=iq9S63LevHYxoDMCkL01bNQBeE4YlWYx&mode=grid&download=1",
-            dvf_2021 = "https://sharedocs.huma-num.fr/wl/?id=XYI1SDuWfYRXfCtuz0jvcz7C4LuLi5Qg&mode=grid&download=1",
-            dvf_2022 = "https://sharedocs.huma-num.fr/wl/?id=5sYwnTlHiFAiTtgD9ZqUeNuEAUTo5T7F&mode=grid&download=1",
-            dvf_2023 = "https://sharedocs.huma-num.fr/wl/?id=4l09Pfh8OGPICchf9PQEw4X4kdvjOR5P&mode=grid&download=1",
-            dvf_2024 = "https://sharedocs.huma-num.fr/wl/?id=oSMYbBxT6OWaePSLPydnXOJYoQE3tOID&mode=grid&download=1"
+download <- "&mode=grid&download=1"
+                       
+dvf <- list(dvf_2014 = paste0("https://sharedocs.huma-num.fr/wl/?id=vp4DTsuh5ctsBwGTzCSzgdKvZ3HnreAf", download),
+            dvf_2015 = paste0("https://sharedocs.huma-num.fr/wl/?id=QJ3AiWOCYVCkYN6Z0FzqI2yMM7Fu0Jhp", download),
+            dvf_2016 = paste0("https://sharedocs.huma-num.fr/wl/?id=OshgupIqPkg70hEMB7DdSpbsFDuTeAMN", download),
+            dvf_2017 = paste0("https://sharedocs.huma-num.fr/wl/?id=E0Xc2Ahyb0UUGoHFL6JR704dpQnUE7wK", download),
+            dvf_2018 = paste0("https://sharedocs.huma-num.fr/wl/?id=I22yu03q8W53XEFSb0voebmdi0ORUzUl", download),
+            dvf_2019 = paste0("https://sharedocs.huma-num.fr/wl/?id=6muOpXEStHm1Y56YUNv93n14zx2QSQ9i", download),
+            dvf_2020 = paste0("https://sharedocs.huma-num.fr/wl/?id=iq9S63LevHYxoDMCkL01bNQBeE4YlWYx", download),
+            dvf_2021 = paste0("https://sharedocs.huma-num.fr/wl/?id=XYI1SDuWfYRXfCtuz0jvcz7C4LuLi5Qg", download),
+            dvf_2022 = paste0("https://sharedocs.huma-num.fr/wl/?id=5sYwnTlHiFAiTtgD9ZqUeNuEAUTo5T7F", download),
+            dvf_2023 = paste0("https://sharedocs.huma-num.fr/wl/?id=4l09Pfh8OGPICchf9PQEw4X4kdvjOR5P", download),
+            dvf_2024 = paste0("https://sharedocs.huma-num.fr/wl/?id=oSMYbBxT6OWaePSLPydnXOJYoQE3tOID", download)
 )
 
 a <- read.csv(dvf[[9]])
