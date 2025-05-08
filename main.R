@@ -89,14 +89,14 @@ mar <- merge(tabl, dvf, by.x = "COM_CODE", by.y = "codecommune")
 mar <- mar[, -c(1,2)]
 
 # Fonction pour traiter un type de bien (Maison/Appartement)
-filter_dvf <- function(dvf, type_bien) {
+filter_dvf <- function(dvf, id, type_bien) {
   
   # Filtrer les données pour le type de bien
   dvf_filtered <- dvf[dvf$type == type_bien, ]
   
   # Calcul des agregations par regroupement de communes
-  com_prix <- tapply(dvf_filtered$prix, dvf_filtered$comar, median, na.rm = TRUE)
-  com_nomb <- tapply(dvf_filtered$prix, dvf_filtered$comar, length)
+  com_prix <- tapply(dvf_filtered$prix, dvf_filtered[[id]], median, na.rm = TRUE)
+  com_nomb <- tapply(dvf_filtered$prix, dvf_filtered[[id]], length)
   
   # Convertir en data.frame
   result <- data.frame(comar = names(com_prix),
@@ -110,8 +110,8 @@ filter_dvf <- function(dvf, type_bien) {
   return(result)
 }
 
-maison <- filter_dvf(mar, "Maison")
-appart <- filter_dvf(mar, "Appartement")
+maison <- filter_dvf(mar, "COMF_CODE_MULTI", "Maison")
+appart <- filter_dvf(mar, "COMF_CODE_MULTI", "Appartement")
 
 mar_dvf <- merge(maison, appart, by = "comar", all = TRUE)
 
@@ -154,12 +154,12 @@ loyer$TOT[is.na(loyer$TOT)] <- 5
 loyer$TOTB <- loyer$TOT
 
 # Agregation des communes en calculant une moyenne ponderee des loyers
-mar_loyer <- aggreg_data(tabl = tabl,
-                         data = loyer,
-                         vars = c(3:6),
-                         funs = c("prod1", "prod2", "coef1", "coef2"),
-                         id = c("COM_CODE", "Code"),
-                         maille = "comar")
+mar_loyer <- asf_data(tabl = tabl,
+                      data = loyer,
+                      vars = c(3:6),
+                      funs = c("prod1", "prod2", "coef1", "coef2"),
+                      id = c("COM_CODE", "Code"),
+                      maille = "COMF_CODE_MULTI")
 
 rm(arr, arr_com, arr_loyer, pop, loyer)
 
@@ -168,31 +168,30 @@ rm(arr, arr_com, arr_loyer, pop, loyer)
 ################################################################### PACKAGE ASF
 
 # Traitement sur les donnees --------------------------------------------------
-data <- merge(mar_revenu, mar_loyer, by = "comar", all = TRUE)
+data <- merge(mar_revenu, mar_loyer, by.x = "comar", by.y = "COMF_CODE_MULTI", all = TRUE)
 data <- merge(data, mar_dvf, by = "comar", all = TRUE)
 
 # Creation du fond et des zooms -----------------------------------------------
-comar <- "https://sharedocs.huma-num.fr/wl/?id=ompFGNW6dYfyBv2pk2HxLA0x7yA3fc8C&mode=grid&download=1"
+fond <- com
+# fond <- asf_drom(fond, id = "COMF_CODE_MULTI")
+# 
+# z <- asf_zoom(fond = fond,
+#               villes = c("Marseille", "Lyon", "Toulouse", "Nantes", "Montpellier",
+#                          "Bordeaux", "Lille", "Rennes", "Reims", "Dijon",
+#                          "Angers", "Grenoble", "Clermont-Ferrand", "Tours", "Perpignan",
+#                          "Besancon", "Rouen", "La Rochelle", "Le Havre", "Nice"
+#               ),
+#               buffer = 10000)
+# 
+# zoom <- z$zoom
+# label <- z$label
 
-fond <- st_read(comar)
+fond <- asf_simplify(fond, keep = 0.1)
 
-zoom_created <- create_zoom(fond = fond,
-                            villes = c("Marseille", "Lyon", "Toulouse", "Nantes", "Montpellier",
-                                       "Bordeaux", "Lille", "Rennes", "Reims", "Dijon",
-                                       "Angers", "Grenoble", "Clermont-Ferrand", "Tours", "Perpignan",
-                                       "Besancon", "Rouen", "La Rochelle", "Le Havre", "Nice"
-                            ),
-                            buffer = 10000)
-
-zooms <- zoom_created$zooms
-labels <- zoom_created$labels
-
-fond <- simplify_geom(fond, keep = 0.1)
-
-fondata <- merge_fondata(data = data,
-                         fond = fond,
-                         zoom = zooms,
-                         id = c("comar", "id_multi"))
+fondata <- asf_fondata(data = data,
+                       fond = fond,
+                       # zoom = zoom,
+                       id = c("comar", "COMF_CODE_MULTI"))
 
 
 ###############################################################################
@@ -263,6 +262,8 @@ mf_map(fondata,
        pal = palette,
        border = NA)
 
+test <- st_transform(fondata, crs = "EPSG:4326")
+st_write(test, "web_immo.geojson")
 
 ###############################################################################
 ############################################################# GRAPHIQUE MATRICE
