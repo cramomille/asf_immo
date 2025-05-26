@@ -5,47 +5,25 @@
 #                                                                renaud le goix
 #                                                                  aliette roux
 
-library(sf)
 library(asf)
 library(mapsf)
 
-# library(ggplot2)
-# library(reshape2)
+library(ggplot2)
+library(reshape2)
+
 
 ###############################################################################
 ############################################################### FONDS D'ALIETTE
 
-mar <- asf_mar()
+asf_mar()
 
-# Recuperation des fonds de reference
-tabl_com <- mar$ar01$d.comf.pass
-tabl_com <- tabl_com[, c(2, 5)]
+# Creation du fond geographique des communes regroupees
+com <- asf_fond(sf.irisf, 
+                df.irisr, 
+                by = "IRISF_CODE", 
+                maille = "COMR_CODE")
 
-# Recuperation des communes regroupees
-iris <- mar$ar02$sf.irisr.s
-
-# Agregation en communes
-com <- aggregate(iris, by = list(iris$COMF_CODE_MULTI), FUN = function(x) x[1])
-com <- com[, c(7, 8)]
-com <- st_transform(com, 2154)
-
-summary(nchar(com$COMF_CODE_MULTI))
-
-# Decomposition des identifiants agreges en une liste
-list_id <- strsplit(com$COMF_CODE_MULTI, " \\| ")
-
-# Creation d'une table d'association entre chaque commune et son regroupement de communes
-tabl_id <- data.frame(
-  COMF_CODE = unlist(list_id),
-  COMF_CODE_MULTI = rep(com$COMF_CODE_MULTI, sapply(list_id, length))
-)
-
-summary(nchar(tabl_id$COMF_CODE_MULTI))
-
-# Creation d'une table de passage globale
-tabl <- merge(tabl_com, tabl_id, by = "COMF_CODE", all = TRUE)
-tabl <- tabl[, c(2,1,3)]
-# tabl <- tabl[!grepl("75056|13055|69123", tabl$COMF_CODE), ]
+com <- com[, c(10:28)]
 
 
 ###############################################################################
@@ -54,6 +32,7 @@ tabl <- tabl[, c(2,1,3)]
 # Chargement du fichier FILOCOM -----------------------------------------------
 mar_revenu <- read.csv("input/decile_revucm_comar.csv")
 mar_revenu <- mar_revenu[, c("comar", "d5_2022")]
+names(mar_revenu)[1] <- "COMR_CODE"
 
 
 # Chargement des fichiers DVF -------------------------------------------------
@@ -85,8 +64,9 @@ dvf <- dvf[, -c(1,3,4,10,11)]
 # ap <- dvf[dvf$type == "Appartement", ]
 # quantile(ap$surface, probs = c(0.25, 0.5, 0.75), na.rm = TRUE)
 
+# Jointure avec le maillage composite d'Aliette Roux
+tabl <- df.comr[, c(2,4,5,17)]
 mar <- merge(tabl, dvf, by.x = "COM_CODE", by.y = "codecommune")
-mar <- mar[, -c(1,2)]
 
 # Fonction pour traiter un type de bien (Maison/Appartement)
 filter_dvf <- function(dvf, id, type_bien) {
@@ -99,7 +79,7 @@ filter_dvf <- function(dvf, id, type_bien) {
   com_nomb <- tapply(dvf_filtered$prix, dvf_filtered[[id]], length)
   
   # Convertir en data.frame
-  result <- data.frame(comar = names(com_prix),
+  result <- data.frame(COMR_CODE = names(com_prix),
                        prix = as.vector(com_prix),
                        nb = as.vector(com_nomb))
   
@@ -110,10 +90,10 @@ filter_dvf <- function(dvf, id, type_bien) {
   return(result)
 }
 
-maison <- filter_dvf(mar, "COMF_CODE_MULTI", "Maison")
-appart <- filter_dvf(mar, "COMF_CODE_MULTI", "Appartement")
+maison <- filter_dvf(mar, "COMR_CODE", "Maison")
+appart <- filter_dvf(mar, "COMR_CODE", "Appartement")
 
-mar_dvf <- merge(maison, appart, by = "comar", all = TRUE)
+mar_dvf <- merge(maison, appart, by = "COMR_CODE", all = TRUE)
 
 rm(a, b, dvf, mar, maison, appart)
 
@@ -154,12 +134,13 @@ loyer$TOT[is.na(loyer$TOT)] <- 5
 loyer$TOTB <- loyer$TOT
 
 # Agregation des communes en calculant une moyenne ponderee des loyers
-mar_loyer <- asf_data(tabl = tabl,
-                      data = loyer,
+mar_loyer <- asf_data(d = loyer,
+                      t = tabl, 
+                      by.x = "Code",
+                      by.y = "COM_CODE",
+                      maille = "COMR_CODE",
                       vars = c(3:6),
-                      funs = c("prod1", "prod2", "coef1", "coef2"),
-                      id = c("COM_CODE", "Code"),
-                      maille = "COMF_CODE_MULTI")
+                      funs = c("prod1", "prod2", "coef1", "coef2"))
 
 rm(arr, arr_com, arr_loyer, pop, loyer)
 
@@ -168,30 +149,31 @@ rm(arr, arr_com, arr_loyer, pop, loyer)
 ################################################################### PACKAGE ASF
 
 # Traitement sur les donnees --------------------------------------------------
-data <- merge(mar_revenu, mar_loyer, by.x = "comar", by.y = "COMF_CODE_MULTI", all = TRUE)
-data <- merge(data, mar_dvf, by = "comar", all = TRUE)
+data <- merge(mar_revenu, mar_loyer, by = "COMR_CODE", all = TRUE)
+data <- merge(data, mar_dvf, by = "COMR_CODE", all = TRUE)
 
 # Creation du fond et des zooms -----------------------------------------------
 fond <- com
-# fond <- asf_drom(fond, id = "COMF_CODE_MULTI")
-# 
-# z <- asf_zoom(fond = fond,
-#               villes = c("Marseille", "Lyon", "Toulouse", "Nantes", "Montpellier",
-#                          "Bordeaux", "Lille", "Rennes", "Reims", "Dijon",
-#                          "Angers", "Grenoble", "Clermont-Ferrand", "Tours", "Perpignan",
-#                          "Besancon", "Rouen", "La Rochelle", "Le Havre", "Nice"
-#               ),
-#               buffer = 10000)
-# 
-# zoom <- z$zoom
-# label <- z$label
+fond <- asf_drom(fond, id = "COMR_CODE")
+
+z <- asf_zoom(fond,
+              places = c("Marseille", "Lyon", "Toulouse", "Nantes", "Montpellier",
+                         "Bordeaux", "Lille", "Rennes", "Reims", "Dijon",
+                         "Angers", "Grenoble", "Clermont-Ferrand", "Tours", "Perpignan",
+                         "Besancon", "Rouen", "La Rochelle", "Le Havre", "Nice"
+              ),
+              r = 15000)
+
+zoom <- z$zooms
+label <- z$labels
+point <- z$points
 
 fond <- asf_simplify(fond, keep = 0.1)
 
-fondata <- asf_fondata(data = data,
-                       fond = fond,
-                       # zoom = zoom,
-                       id = c("comar", "COMF_CODE_MULTI"))
+fondata <- asf_fondata(f = fond,
+                       z = zoom,
+                       d = data,
+                       by = "COMR_CODE")
 
 
 ###############################################################################
@@ -206,9 +188,13 @@ fondata$abord_mai_loc <- (fondata$loyer_mai * 98) / (fondata$d5_2022 / 12) * 100
 fondata$abord_app_loc <- (fondata$loyer_app * 49) / (fondata$d5_2022 / 12) * 100
 
 # Indice final
-# Calcul des quartiles
+# Calcul des Q6
 q_m <- quantile(fondata$abord_mai, probs = c(0.05, 0.25, 0.5, 0.75, 0.95, 1), na.rm = TRUE)
 q_a <- quantile(fondata$abord_app, probs = c(0.05, 0.25, 0.5, 0.75, 0.95, 1), na.rm = TRUE)
+
+# Arrondis des Q6
+q_m <- c(4, 7, 9, 12, 18)
+q_a <- c(2, 4, 6, 8, 10)
 
 # Création de la colonne 'typo'
 fondata$typo_m <- with(fondata, 
@@ -226,7 +212,7 @@ fondata$typo_m <- with(fondata,
                        ifelse(abord_mai >= q_m[5] & abord_app_loc > 30, 12, 
                        NA)))))))))))))
 
-fondata$typo_a <- with(fondata, 
+fondata$typo_a <- with(fondata,
                        ifelse(abord_app < q_a[1] & abord_app_loc < 30, 1,
                        ifelse(abord_app < q_a[1] & abord_app_loc > 30, 2,
                        ifelse(abord_app >= q_a[1] & abord_app < q_a[2] & abord_app_loc < 30, 3,
@@ -238,7 +224,7 @@ fondata$typo_a <- with(fondata,
                        ifelse(abord_app >= q_a[4] & abord_app < q_a[5] & abord_app_loc < 30, 9,
                        ifelse(abord_app >= q_a[4] & abord_app < q_a[5] & abord_app_loc > 30, 10,
                        ifelse(abord_app >= q_a[5] & abord_app_loc < 30, 11,
-                       ifelse(abord_app >= q_a[5] & abord_app_loc > 30, 12, 
+                       ifelse(abord_app >= q_a[5] & abord_app_loc > 30, 12,
                        NA)))))))))))))
 
 palette <- c(
@@ -250,23 +236,124 @@ palette <- c(
   "#f59c00","#dc0d15"
 )
 
+dep <- asf_borders(fond, 
+                   by = "DEP",
+                   keep = 0.1)
+
+mf_map(fondata,
+       var = "typo_m",
+       type = "typo",
+       pal = palette,
+       border = NA)
+mf_map(dep, 
+       col = "white", 
+       lwd = 1, 
+       add = TRUE)
+mf_map(point,
+       add = TRUE)
+mf_label(label, 
+         var = "label")
+
 mf_map(fondata,
        var = "typo_a", 
        type = "typo",
        pal = palette,
        border = NA)
 
-mf_map(fondata,
-       var = "typo_m", 
-       type = "typo",
-       pal = palette,
-       border = NA)
+# # Export pour la carte web de Nicolas
+# test <- st_transform(fondata, crs = "EPSG:4326")
+# st_write(test, "web_immo.geojson")
 
-test <- st_transform(fondata, crs = "EPSG:4326")
-st_write(test, "web_immo.geojson")
 
 ###############################################################################
-############################################################# GRAPHIQUE MATRICE
+################################################################ GRAPHIQUES AAV
+
+# asf_mar()
+# tmp <- fondata[, c(1, 2, 11, 12)]
+# com <- mar$ar01$sf.comf
+# com <- com[, c(1)]
+# tabl <- mar$ar01$d.comf.app
+# tabl <- tabl[, c(2, 16)]
+# 
+# aav <- merge(tabl, com, by.x = "COMF_CODE", by.y = "COMFA_CODE")
+
+
+# Fonction pour recuperer les typologies associees aux id d'une cellule
+x <- function(id_multi, df) {
+  # Separation des id
+  id <- trimws(unlist(strsplit(id_multi, "\\|")))
+  # Recuperation des typologies associees a ces id
+  typo <- df$TAAV2017[match(id, df$COMF_CODE)]
+  # Retour des typologies distinctes
+  paste(sort(unique(typo)), collapse = " | ")
+}
+
+# Application
+tmp$aav <- sapply(tmp$COMF_CODE_MULTI, x, df = aav)
+
+
+# Fonction pour recuperer la typologie majoritaire
+y <- function(id_multi, df) {
+  # Separation des id
+  id <- trimws(unlist(strsplit(id_multi, "\\|")))
+  # Recuperation des typologies associees a ces id
+  typo <- df$TAAV2017[match(id, df$COMF_CODE)]
+  typo <- typo[!is.na(typo)]
+  
+  # Si vide (aucun code trouve), retourner NA
+  if (length(typo) == 0) return(NA)
+  
+  # Tableau de fréquence
+  freq <- table(typo)
+  freq_max <- max(freq)
+  maj <- as.numeric(names(freq)[freq == freq_max])
+  maj <- max(maj)
+  
+  return(maj)
+}
+
+# Application
+tmp$aav_maj <- sapply(tmp$COMF_CODE_MULTI, y, df = aav)
+
+
+###############################################################################
+
+tabl <-  df.comr[, c("COMR_CODE", "TAAV2017")]
+tabl <- tabl[!duplicated(tabl$COMR_CODE), ]
+
+
+tmp <- merge(fondata, tabl, by = "COMR_CODE")
+
+# Calcul des q6
+tmp <- tmp[!is.na(tmp$abord_mai), ]
+nb <- round(quantile(tmp$abord_mai, probs = c(0, 0.05, 0.25, 0.5, 0.75, 0.95, 1)))
+nb <- c(0, 4, 7, 9, 12, 18, 63)
+
+# Definition pour chaque entite de son q6 d'appartenance
+tmp$class <- cut(tmp$abord_mai,
+                 breaks = nb,
+                 include.lowest = TRUE,
+                 labels = paste0("q", 1:6))
+
+tmp$TAAV2017 <- as.character(tmp$TAAV2017)
+tmp$class <- as.character(tmp$class)
+
+asf_plot_typo(d = tmp, 
+              vars = c("class"), 
+              typo = "TAAV2017",
+              order.v = c("q1", "q2", "q3", "q4", "q5", "q6"), 
+              order.t = c("0", "1", "2", "3", "4", "5"))
+
+
+asf_plot_typo(d = tmp, 
+              vars = c("TAAV2017"), 
+              typo = "class",
+              order.v = c("0", "1", "2", "3", "4", "5"), 
+              order.t = c("q1", "q2", "q3", "q4", "q5", "q6"))
+
+
+###############################################################################
+############################################################ GRAPHIQUES MATRICE
 
 # Definition des fichiers et des valeurs de division
 data <- list(dvf_2014 = "https://sharedocs.huma-num.fr/wl/?id=vp4DTsuh5ctsBwGTzCSzgdKvZ3HnreAf&mode=grid&download=1",
@@ -321,6 +408,8 @@ rd9 <- c(36068, #2013
          43503  #2023
 )
 
+asf_mar()
+tabl <- df.comr[, c(2,4,5,17)]
 
 # Initialisation d'une liste pour stocker les resultats
 maison <- list()
@@ -334,15 +423,15 @@ for (i in seq_along(data)) {
   dvf <- dvf[, c(9,5,6)]
   
   mar <- merge(tabl, dvf, by.x = "COM_CODE", by.y = "codecommune")
-  mar <- mar[, -c(1,2)]
+  mar <- mar[, c("COMR_CODE", "type", "prix")]
   
   # Filtrage du type de bien (Maison ou Appartement)
   mai <- mar[mar$type == "Maison", ]
   app <- mar[mar$type == "Appartement", ]
 
   # Agregation par groupe de communes
-  mai <- aggregate(prix ~ comar, mai, FUN = median, na.rm = TRUE)
-  app <- aggregate(prix ~ comar, app, FUN = median, na.rm = TRUE)
+  mai <- aggregate(prix ~ COMR_CODE, mai, FUN = median, na.rm = TRUE)
+  app <- aggregate(prix ~ COMR_CODE, app, FUN = median, na.rm = TRUE)
   
   # Calcul des deciles
   decile_mai <- quantile(mai$prix, probs = seq(0.1, 0.9, 0.1))
@@ -351,11 +440,11 @@ for (i in seq_along(data)) {
   # Stockage des resultats
   maison[[i]] <- data.frame(
     # decile = decile,
-    abord = round(decile_mai / rd5[i], 1)
+    abord = round(decile_mai / rd9[i], 1)
   )
   appart[[i]] <- data.frame(
     # decile = decile,
-    abord = round(decile_app / rd5[i], 1)
+    abord = round(decile_app / rd9[i], 1)
   )
   
   # Renommer les colonnes pour chaque annee
@@ -366,12 +455,12 @@ for (i in seq_along(data)) {
 }
 
 # Fusionner tous les tableaux par la colonne des deciles
-maison_d5 <- do.call(cbind, maison)
-appart_d5 <- do.call(cbind, appart)
+maison_d9 <- do.call(cbind, maison)
+appart_d9 <- do.call(cbind, appart)
 
-# Dessin des graphiques
-tableau <- maison_d5
-tableau <- appart_d5
+# Dessin des graphiques -------------------------------------------------------
+# tableau <- maison_d1
+tableau <- appart_d9
 
 tableau$decile = c("10%","20%","30%","40%","50%","60%","70%","80%","90%")
 
@@ -383,16 +472,19 @@ colnames(tableau_long) <- c("decile", "annee", "valeur")
 
 # Création d'une colonne categorielle pour les classes
 tableau_long$classe <- cut(tableau_long$valeur,
-                           breaks = c(0, 5, 10, 15, 30, Inf),
-                           labels = c("1", "2", "3", "4", "5"),
+                           breaks = c(0, 2, 4, 6, 8, 10, Inf),
+                           # breaks = c(0, 4, 7, 9, 12, 18, Inf),
+                           labels = c("1", "2", "3", "4", "5", "6"),
                            right = FALSE
 )
 
-palette <- c("1" = "#bce4fa",
-             "2" = "#e3e3e3",
-             "3" = "#f8c9df",
-             "4" = "#f088b6",
-             "5" = "#e8308a")
+palette <- c("1" = "#00a183",
+             "2" = "#8ccaae",
+             "3" = "#cce5d8",
+             "4" = "#fbceb4",
+             "5" = "#f28d65",
+             "6" = "#dc0d15"
+             )
 
 # Creation du heatmap avec ggplot
 ggplot(tableau_long, aes(x = annee, y = decile, fill = classe)) +
