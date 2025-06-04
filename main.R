@@ -1,10 +1,10 @@
 
-#                                 EXPLORATIONS POUR LA PLANCHE SUR L'IMMOBILIER
+#                                   ASF - SCRIPT DE LA PLANCHE SUR L'IMMOBILIER
 #
 #                                                                antoine beroud
 #                                                                renaud le goix
-#                                                                  aliette roux
 
+library(sf)
 library(asf)
 library(mapsf)
 
@@ -13,9 +13,10 @@ library(reshape2)
 
 
 ###############################################################################
-############################################################### FONDS D'ALIETTE
+########################################################## FONDS D'ALIETTE ROUX
 
-asf_mar()
+# Lecture des fichiers
+mar <- asf_mar()
 
 # Creation du fond geographique des communes regroupees
 com <- asf_fond(sf.irisf, 
